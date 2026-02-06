@@ -119,19 +119,62 @@ This encourages learning and self-awareness rather than blind automation.
 
 ### 6.2 Technical Architecture
 
-User Persona Input
-↓
-Market Data (Historical)
-↓
-+----------------------------+
-| Fire | Water | Grass Agents|
-+----------------------------+
-↓
-Backtest + Self-Critique
-↓
-Judge Agent
-↓
-Final Strategy Recommendation
+```mermaid
+flowchart TD
+    Start([User]) -->|Inputs Persona| Persona[User Persona Profile<br/>- Risk Tolerance<br/>- Time Horizon<br/>- Drawdown Sensitivity]
+    
+    Persona --> Market[Market Data<br/>Historical Price Data]
+    
+    Market --> Parallel{Parallel Agent<br/>Execution}
+    
+    Parallel -->|Strategy 1| Fire[🔥 Fire Agent<br/>Aggressive/High Risk]
+    Parallel -->|Strategy 2| Water[💧 Water Agent<br/>Conservative/Low Risk]
+    Parallel -->|Strategy 3| Grass[🌱 Grass Agent<br/>Hybrid/Medium Risk]
+    
+    Fire --> FireBT[Backtest Strategy<br/>- Execute trades<br/>- Calculate metrics]
+    Water --> WaterBT[Backtest Strategy<br/>- Execute trades<br/>- Calculate metrics]
+    Grass --> GrassBT[Backtest Strategy<br/>- Execute trades<br/>- Calculate metrics]
+    
+    FireBT --> FireCrit[Self-Critique<br/>- Regime suitability<br/>- Risk alignment<br/>- Failure analysis]
+    WaterBT --> WaterCrit[Self-Critique<br/>- Regime suitability<br/>- Risk alignment<br/>- Failure analysis]
+    GrassBT --> GrassCrit[Self-Critique<br/>- Regime suitability<br/>- Risk alignment<br/>- Failure analysis]
+    
+    FireCrit --> FireOut[Fire Output<br/>Return: High<br/>Drawdown: High<br/>Volatility: High]
+    WaterCrit --> WaterOut[Water Output<br/>Return: Low<br/>Drawdown: Low<br/>Volatility: Low]
+    GrassCrit --> GrassOut[Grass Output<br/>Return: Medium<br/>Drawdown: Medium<br/>Volatility: Medium]
+    
+    FireOut --> Judge[⚖️ Judge Agent<br/>Persona-Aware Arbiter]
+    WaterOut --> Judge
+    GrassOut --> Judge
+    Persona -.->|User Profile| Judge
+    
+    Judge --> Eval{Evaluate Against<br/>User Persona}
+    
+    Eval --> Select[Select Most Suitable Strategy<br/>Not necessarily highest return]
+    
+    Select --> Explain[Generate Explanation<br/>- Why this strategy?<br/>- Trade-offs<br/>- Risk alignment]
+    
+    Explain --> Recommend[📊 Final Recommendation<br/>to User]
+    
+    Recommend --> UserDecision{User Decision}
+    
+    UserDecision -->|Accept & Track| Cultivate[🌟 Optional: Agent Cultivation<br/>- Track user behavior<br/>- Evolve agent personality<br/>- Unlock improvements]
+    
+    UserDecision -->|Try Different Persona| Persona
+    
+    UserDecision -->|End Session| End([End])
+    
+    Cultivate --> Feedback[Agent learns from<br/>user choices over time]
+    
+    Feedback -.->|Refines future<br/>recommendations| Persona
+    
+    style Fire fill:#ff6b6b
+    style Water fill:#4ecdc4
+    style Grass fill:#95e1d3
+    style Judge fill:#ffd93d
+    style Recommend fill:#6bcf7f
+    style Cultivate fill:#c4b5fd
+```
 
 
 ---
