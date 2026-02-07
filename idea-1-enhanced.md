@@ -407,70 +407,48 @@ This encourages learning and self-awareness rather than blind automation.
 
 ```mermaid
 flowchart TD
-    Start([User]) -->|Inputs Persona| Persona[Session Memory<br/>UserPersona Schema<br/>- Risk Tolerance<br/>- Time Horizon<br/>- Drawdown Sensitivity]
-    
-    Persona --> Market["@app.skill()<br/>fetch_market_data()<br/>Historical Price Data"]
-    
-    Market --> Parallel["asyncio.gather()<br/>Parallel Agent Execution"]
-    
-    Parallel -->|"app.call()"| Fire["🔥 Fire Agent<br/>Reasoner + Skill"]
-    Parallel -->|"app.call()"| Water["💧 Water Agent<br/>Reasoner + Skill"]
-    Parallel -->|"app.call()"| Grass["🌱 Grass Agent<br/>Reasoner + Skill"]
-    
-    Fire --> FireSkill["@app.skill()<br/>run_momentum_backtest()<br/>→ BacktestResult"]
-    Water --> WaterSkill["@app.skill()<br/>run_conservative_backtest()<br/>→ BacktestResult"]
-    Grass --> GrassSkill["@app.skill()<br/>run_adaptive_backtest()<br/>→ BacktestResult"]
-    
-    FireSkill --> FireReason["@app.reasoner()<br/>critique_fire_strategy()<br/>→ StrategyCritique"]
-    WaterSkill --> WaterReason["@app.reasoner()<br/>critique_water_strategy()<br/>→ StrategyCritique"]
-    GrassSkill --> GrassReason["@app.reasoner()<br/>critique_grass_strategy()<br/>→ StrategyCritique"]
-    
-    FireReason --> SharedMem["Shared Memory<br/>app.memory.set()<br/>findings · critiques · metrics"]
-    WaterReason --> SharedMem
-    GrassReason --> SharedMem
-    
-    SharedMem --> Judge["⚖️ Judge Agent<br/>@app.reasoner()<br/>select_strategy()"]
-    Persona -.->|"app.memory.get(<br/>user_persona)"| Judge
-    
-    Judge --> Decision["JudgeDecision Schema<br/>selected_agent · reasoning<br/>persona_alignment_score<br/>tradeoffs"]
-    
-    Decision --> Explain["@app.reasoner()<br/>explain_decision()<br/>→ Human-readable summary"]
-    
-    Explain --> Recommend["📊 Final Recommendation<br/>Typed Pydantic output<br/>to User"]
-    
-    Recommend --> UserDecision{User Decision}
-    
-    UserDecision -->|Accept & Track| Cultivate["🌟 Agent Cultivation<br/>Agent-scoped Memory<br/>Vector search on past decisions"]
-    
-    UserDecision -->|Try Different Persona| Persona
-    
-    UserDecision -->|End Session| End([End])
-    
-    Cultivate --> Feedback["app.memory.set_vector()<br/>Learns from user choices"]
-    
-    Feedback -.->|"Refines future<br/>recommendations"| Persona
+    User([👤 User]) -->|Persona Input| Persona[User Persona<br/>risk · horizon · sensitivity]
 
-    subgraph CP [Control Plane]
+    Persona --> Market[Fetch Market Data]
+
+    subgraph Agents ["Parallel Strategy Agents"]
         direction LR
-        Routing["Routing"]
-        Obs["Observability"]
-        Identity["Identity"]
+
+        subgraph F [🔥 Fire Agent]
+            direction TB
+            F1[Skill: Backtest] --> F2[Reasoner: Critique]
+        end
+
+        subgraph W [💧 Water Agent]
+            direction TB
+            W1[Skill: Backtest] --> W2[Reasoner: Critique]
+        end
+
+        subgraph G [🌱 Grass Agent]
+            direction TB
+            G1[Skill: Backtest] --> G2[Reasoner: Critique]
+        end
     end
-    
-    Parallel -.-> CP
-    CP -.-> Fire
-    CP -.-> Water
-    CP -.-> Grass
-    CP -.-> Judge
-    
-    style Fire fill:#ff6b6b
-    style Water fill:#4ecdc4
-    style Grass fill:#95e1d3
+
+    Market --> Agents
+
+    Agents --> Mem[(Shared Memory)]
+
+    Persona -.-> Judge
+    Mem --> Judge[⚖️ Judge Agent]
+
+    Judge --> Rec[📊 Recommendation]
+    Rec --> User
+
+    style F1 fill:#f5c6aa
+    style F2 fill:#ff6b6b
+    style W1 fill:#a8e6cf
+    style W2 fill:#4ecdc4
+    style G1 fill:#c8f7c5
+    style G2 fill:#95e1d3
     style Judge fill:#ffd93d
-    style Recommend fill:#6bcf7f
-    style Cultivate fill:#c4b5fd
-    style SharedMem fill:#e8e8e8
-    style CP fill:#f0ebe3,stroke:#b8a88a
+    style Rec fill:#6bcf7f
+    style Mem fill:#e8e8e8
 ```
 
 ---
