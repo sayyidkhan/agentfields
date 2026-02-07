@@ -7,6 +7,10 @@ agentfield
 # AI & Structured Output
 pydantic>=2.0
 
+# API service (Risk Governor)
+fastapi>=0.110
+uvicorn[standard]>=0.24
+
 # Numerical Computing (used in Skills)
 numpy>=1.24
 pandas>=2.0
@@ -16,3 +20,8 @@ python-dotenv
 
 # Market Data (optional — falls back to synthetic data if unavailable)
 yfinance
+
+# Testing
+pytest>=7.0
+pytest-asyncio>=0.21
+httpx>=0.24

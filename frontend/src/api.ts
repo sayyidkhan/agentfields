@@ -1,7 +1,8 @@
 import type { UserPersona, ChatMessage, AnalysisResponse, AgentfieldResponse } from './types';
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY as string;
-const OPENAI_MODEL = (import.meta.env.VITE_OPENAI_MODEL as string) || 'gpt-4o-mini';
+const env = import.meta.env as unknown as Record<string, string | undefined>;
+const OPENAI_API_KEY = env.VITE_OPENAI_API_KEY || env.OPENAI_API_KEY;
+const OPENAI_MODEL = env.VITE_OPENAI_MODEL || env.OPENAI_MODEL || 'gpt-4o-mini';
 const API_BASE = '/api/v1';
 
 // ─── Conversational Persona Builder ───────────────────────────────────────
@@ -68,11 +69,24 @@ export interface AdvisorResponse {
   persona: (UserPersona & { summary: string; ticker: string }) | null;
 }
 
+function assertOpenAIConfigured() {
+  if (!OPENAI_API_KEY || OPENAI_API_KEY.trim().length === 0) {
+    throw new Error(
+      [
+        'OpenAI is not configured.',
+        'Set `VITE_OPENAI_API_KEY` (recommended) or `OPENAI_API_KEY` in `frontend/.env.local`, then restart `npm run dev`.',
+      ].join(' '),
+    );
+  }
+}
+
 /**
  * Send conversation to the advisor and get back either a follow-up message
  * or an extracted persona (when the model calls the function).
  */
 export async function chatWithAdvisor(messages: ChatMessage[]): Promise<AdvisorResponse> {
+  assertOpenAIConfigured();
+
   const openaiMessages = [
     { role: 'system' as const, content: ADVISOR_SYSTEM_PROMPT },
     ...messages.map((m) => ({ role: m.role as 'assistant' | 'user', content: m.content })),

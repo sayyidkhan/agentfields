@@ -1,94 +1,75 @@
-# MagiStock
+# MagiStock → Autonomous Portfolio Risk Governor (AI Backend)
 
 <img src="img/logo/three-magi.png" alt="Three Magi Logo" width="120">
 
-> A persona-aware, multi-agent investment companion built on [AgentField.ai](https://agentfield.ai)
+> **Hackathon framing:** this repo now contains an **AI backend runtime dependency** (AI-as-infrastructure), not a chatbot UI.
 
-MagiStock doesn't optimize for maximum returns. It selects the strategy that **you** can actually stick with.
+## What changed (Before vs After)
 
----
-
-## Architecture
+### Before (AI at the interface)
 
 ```
-    👤 User (Frontend)
-         │
-    ┌────▼─────────┐
-    │  Orchestrator │──── Stores persona in Memory
-    └────┬─────────┘
-         │ parallel app.call()
-    ┌────┼─────────────┐
-    ▼    ▼             ▼
-  🔥 Fire  💧 Water  🌱 Grass    ← Strategy Agents (Skills + Reasoners)
-    │       │          │
-    └───────┼──────────┘
-            ▼
-     Shared Memory
-            │
-    ┌───────▼───────┐
-    │  ⚖️ Judge Agent │ ← Persona-aware arbiter
-    └───────┬───────┘
-            ▼
-     📊 Recommendation
+User → Orchestrator → (Fire/Water/Grass + Judge) → Recommendation
 ```
 
-## Project Structure
+### After (AI owns runtime governance)
 
 ```
-agentfields/
-├── backend/                    # Agentfield multi-agent system
-│   ├── shared/                 # Schemas, indicators, strategies
-│   ├── fire_agent/             # 🔥 Aggressive momentum
-│   ├── water_agent/            # 💧 Conservative preservation
-│   ├── grass_agent/            # 🌱 Adaptive regime-switching
-│   ├── judge_agent/            # ⚖️  Persona-aware arbiter
-│   ├── orchestrator/           # 📊 Coordination & parallel execution
-│   └── scripts/start_all.sh
-│
-├── frontend/                   # React visualization UI
-│   └── src/
-│       ├── components/         # PersonaForm, StrategyCard, JudgeDecision, etc.
-│       ├── api.ts              # Agentfield REST API client
-│       └── App.tsx             # Multi-step user journey
-│
-├── docs/                       # AgentField documentation
-├── img/                        # Logos and assets
-└── idea-1-enhanced.md          # Original PRD
+Market event → Risk Governor backend
+  → typed reasoning (regime + persona policy + viability + escalation)
+  → deterministic action execution (enable/disable/cap only)
+  → memory write + audit trail
+  → Execution Guard (consumed by downstream trading/execution service)
 ```
 
-## Quick Start
+## Litmus test (judge-aligned)
 
-### Backend (Agentfield Agents)
+- **System notices first**: market regime shifts, volatility spikes, crash risk, and user panic patterns are detected and stored.
+- **Downstream consumes guardrails**: the trading service reads `ExecutionGuard` and stays inside constraints without asking a human.
+
+## AgentField primitives (implemented)
+
+- **Reasoners (typed outputs)**: Pydantic schemas, structured JSON only.
+- **Skills (deterministic code)**: market fetch, indicators, backtest, policy application, persistence.
+- **Memory (real KV + vector)**: sqlite-backed KV + vector search (deterministic embeddings).
+- **Discovery (call-by-name)**: coordinator calls specialist reasoners by name (no hardcoded DAG).
+
+## Backend service (no UI required)
+
+The new backend service is `backend/risk_governor/` (FastAPI).
+
+### API endpoints
+
+- `POST /cases` create evaluation run (asset + persona)
+- `POST /events/market` trigger the core loop on a market event
+- `GET /decisions/latest?asset=` current execution guard for trading system
+- `GET /cases/{id}` full audit report with memory citations
+- `POST /overrides` (optional) user override → writes to memory and influences future decisions
+
+## 3-minute demo
+
+Start the backend, then run the demo script (normal → high vol → crash risk, then override → earlier de-risk):
 
 ```bash
 cd backend
 pip install -r requirements.txt
-cp .env.example .env            # Set your OPENAI_API_KEY
-chmod +x scripts/start_all.sh
-./scripts/start_all.sh          # Starts control plane + 5 agents
+python -m risk_governor
+python scripts/demo_risk_governor.py
 ```
 
-### Frontend (Visualization)
+## Project structure (relevant parts)
 
-```bash
-cd frontend
-npm install
-npm run dev                     # http://localhost:3000
+```
+backend/
+├── risk_governor/              # ✅ Autonomous Portfolio Risk Governor (NEW)
+│   ├── api.py                  # FastAPI endpoints
+│   ├── engine.py               # core loop: event → reasoning → actions → memory → persist
+│   ├── reasoners.py            # typed reasoners (no free-form text)
+│   ├── skills.py               # deterministic skills (no LLM)
+│   ├── memory.py               # KV + vector memory (sqlite-backed)
+│   └── db.py                   # sqlite schema + persistence helpers
+├── shared/                     # deterministic indicators/strategies/data
+└── scripts/demo_risk_governor.py
 ```
 
-The frontend starts in **mock mode** by default (no backend needed). Set `USE_MOCK = false` in `src/App.tsx` to connect to the live Agentfield backend.
-
-## How It Works
-
-1. **You** describe your risk profile (3 simple questions)
-2. **Three strategy agents** run backtests in parallel, each with a different philosophy
-3. **Each agent critiques** its own performance using AI (Reasoners)
-4. **The Judge** weighs all results against your persona — not just returns
-5. **You get** a personalized recommendation with honest tradeoffs
-
-## Tech Stack
-
-- **[AgentField](https://agentfield.ai)** — Reasoners, Skills, Memory, Discovery
-- **Python** + **Pydantic** — Backend agents with typed schemas
-- **React** + **TypeScript** + **Tailwind CSS** — Frontend visualization
-- **NumPy** — Deterministic backtesting inside Skills
+> Legacy multi-agent “recommendation” stack (`orchestrator/`, `judge_agent/`, `fire_agent/`, etc.) is still in the repo, but the hackathon-aligned deliverable is the Risk Governor backend.

@@ -9,6 +9,7 @@ Each step is a simple decorated function. No DAGs. No YAML. No workflow DSLs.
 
 import asyncio
 from agentfield.router import AgentRouter
+from agentfield.execution_context import get_current_context
 from shared.schemas import UserPersona
 
 reasoners_router = AgentRouter()
@@ -35,8 +36,14 @@ async def run_analysis(
     This is the entry point — call it via:
     POST /api/v1/execute/magistock.run_analysis
     """
-    # Access the app through lazy import to avoid circular dependency
-    from main import app
+    # Use the *current* running Agent instance (avoids importing a second copy of `main.py`)
+    # which would create an Agent in "local mode" without a control-plane connection.
+    ctx = get_current_context()
+    if ctx is None or getattr(ctx, "agent_instance", None) is None:
+        # Fallback for non-AgentField execution contexts (tests / direct calls)
+        from main import app  # type: ignore
+    else:
+        app = ctx.agent_instance
 
     # ── Step 1: Build persona ────────────────────────────────────────────
     persona = UserPersona(
@@ -53,8 +60,9 @@ async def run_analysis(
         tags=["orchestrator", "start"],
     )
 
-    # ── Step 2: Store persona in memory (session scope) ──────────────────
-    await app.memory.set("user_persona", persona.model_dump(), scope="session")
+    # ── Step 2: Store persona in memory ──────────────────────────────────
+    # NOTE: AgentField v0.1.40 MemoryInterface.set() is (key, data) only.
+    await app.memory.set("user_persona", persona.model_dump())
 
     # ── Step 3: Run all strategy agents in parallel ──────────────────────
     app.note("Launching parallel strategy analysis...", tags=["orchestrator"])
